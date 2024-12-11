@@ -1,0 +1,410 @@
+D3 External API
+
+External API for D3
+
+POST
+/v1/partner/mint
+Mint a name token
+
+
+
+GET
+/v1/partner/token/{sld}/{tld}
+Get name token metadata
+
+
+
+GET
+/v1/partner/token/{chainId}/{contractAddress}/{tokenId}
+Get name token metadata by token ID
+
+
+
+POST
+/v1/partner/tokens/{chainId}/{contractAddress}
+Get name token metadata by multiple token IDs at once
+
+
+
+GET
+/v1/partner/tokens/{addressType}/{address}
+Get name tokens for a wallet address
+
+
+
+GET
+/v1/partner/search
+Search name tokens returning availability and pricing
+
+
+
+GET
+/v1/partner/recommendations
+Get name recommendations
+
+
+
+GET
+/v1/partner/payment/options
+Get supported payment methods for name tokens
+
+
+
+POST
+/v1/partner/order
+Create a partner order for name token purchase
+
+
+Domain Verification API
+
+
+POST
+/v1/domain-verification/submit-domain
+Submit domains
+
+
+GET
+/v1/domain-verification/status
+Get current status
+
+
+Schemas
+PartnerUserRequest{
+wallet*	string
+example: 0x2E7cC63800e77BB8c662c45Ef33D1cCc23861532
+Wallet address to mint the name for. Format is chain-specific, and depends on a chosen TLD.
+
+email	{
+description:	
+Users email address. Used for renewal notifications and support.
+
+}
+example: partner@d3.email
+}
+PartnerMintRequest{
+sld*	string
+example: example
+Second-level domain (SLD) of the name to mint.
+
+tld*	string
+example: com
+Top-level domain (TLD) of the name to mint.
+
+user*	{
+description:	
+User information required to mint the name.
+
+wallet*	[...]
+email	{...}
+example: partner@d3.email
+}
+}
+PartnerMintResponse{
+tokenId*	string
+example: 20719405654568256184282804044567699961418926341258048728655171573148113774124
+Token ID that will be minted.
+
+contractAddress*	string
+example: 0x4F3775dfd49db0BBcd47eB6f45CEb6E6E9e15CD8
+NFT Smart Contract address, which will be used to mint the token.
+
+chainId*	string
+example: 1
+Chain ID of the blockchain network where the token will be minted. For EVM chains, Chain ID is returned.
+
+}
+TokenStatusResponse{
+status*	string
+example: registered
+Status of the name token.
+
+Enum:
+Array [ 3 ]
+sld	string
+example: example
+Second-level domain (SLD) of a name token. Only present when name token is registered.
+
+tld	string
+example: com
+Top-level domain (TLD) of a name token. Only present when name token is registered.
+
+expirationDate	string($date-time)
+example: 2025-05-15T00:00:00.000Z
+Expiration date of a registered name token. May return a past date if the token has expired. Only present when name token is registered.
+
+owner	string
+example: 0x2E7cC63800e77BB8c662c45Ef33D1cCc23861532
+Owner wallet address. Format is chain-specific. Only present when name token is registered.
+
+tokenId	string
+example: 20719405654568256184282804044567699961418926341258048728655171573148113774124
+Minted Token ID. Only present when name token is registered.
+
+contractAddress	string
+example: 0x4F3775dfd49db0BBcd47eB6f45CEb6E6E9e15CD8
+NFT Smart Contract address. Only present when name token is registered.
+
+chainId	string
+example: 1
+Chain ID of the blockchain network. Only present when name token is registered or waiting for finalization.
+
+txHash	string
+example: 2sXoUFPpgFXRKiAXYUWkwtAEQd46azUEFwoebcYQbN6s
+Mint transaction hash. Only present when name token is waiting for finalization.
+
+imageURL	string
+example: https://cdn.d3.app/tokens/1234567890abcdf123467890.png
+Token image URL, only present if token is minted.
+
+}
+BulkTokenStatusRequest{
+tokenIds*	[
+List of token ids to lookup for
+
+string]
+}
+TokenInfoResponse{
+sld*	string
+example: example
+Second-level domain (SLD) of a name token.
+
+tld*	string
+example: com
+Top-level domain (TLD) of a name token.
+
+expirationDate	string($date-time)
+example: 2025-05-15T00:00:00.000Z
+Expiration date of a name token. May return a past date if the token has expired.
+
+tokenId	string
+example: 20719405654568256184282804044567699961418926341258048728655171573148113774124
+Token ID.
+
+contractAddress	string
+example: 0x4F3775dfd49db0BBcd47eB6f45CEb6E6E9e15CD8
+NFT Smart Contract address.
+
+chainId	string
+example: 1
+Chain ID of the blockchain network. Only present when name token is registered or waiting for finalization.
+
+}
+PaginatedTokensResponse{
+total*	number
+example: 42
+Total number of name tokens.
+
+pageItems*	[
+List of name tokens.
+
+TokenInfoResponse{...}]
+}
+SearchItemResponse{
+sld*	string
+example: example
+Second-level domain (SLD) of a name token.
+
+tld*	string
+example: com
+Top-level domain (TLD) of a name token.
+
+status*	string
+example: available
+Name availability status.
+
+Enum:
+Array [ 3 ]
+isListed*	boolean
+example: true
+When status is registered, indicates if there's an active listing for it.
+
+registrationExpiresAt*	string($date-time)
+example: 2025-05-15T00:00:00.000Z
+nullable: true
+When name is registered, indicates registration expiration date. Past expiration date means that the name has expired, but in a grace period now. It could be renewed by the current owner, or be back on the market after a grace period has passed.
+
+reservationExpiresAt*	string($date-time)
+example: 2025-05-15T00:00:00.000Z
+nullable: true
+When name is reserved, indicates reservation expiration date. When name is available, indicates reservation expiration date for the reserved user.
+
+usdPrice*	string
+example: 9.99
+nullable: true
+Price in USD
+
+nativeAmount*	string
+example: 1.23456
+nullable: true
+Price in native token
+
+nativeCurrency*	{
+description:	
+Native blockchain currency. Will be null if tokenization is unsupported for given TLD
+
+}
+example: ETH
+clickUrl*	string
+example: https://d3.app/search?sld=example&product=example.com&partner=com&utm_source=developer&utm_medium=api
+Click URL for more information
+
+lockExpiresAt*	string($date-time)
+example: 2025-05-15T00:00:00.000Z
+nullable: true
+When name is locked, indicates lock expiration date. This is the date until which the domain remains locked, after which it may become available.
+
+}
+SearchPaginatedResponse{
+total*	number
+example: 100
+Total number of items.
+
+pageItems*	[
+List of search items.
+
+SearchItemResponse{...}]
+}
+PaymentOptionResponse{
+chainId*	string
+example: 1
+Chain ID of the blockchain network where the contract is deployed.
+
+chainName*	string
+example: Ethereum
+Name of the blockchain network where the contract is deployed.
+
+addressType*	string
+example: EVM
+Wallet address type for the current chain.
+
+Enum:
+Array [ 6 ]
+contractAddress*	string
+example: 0x46A7bEA3dBb87522834c8b24FA14D051893deE8a
+The contract address of the payment method
+
+tokenAddress*	{
+description:	
+The token address used in the payment method
+
+}
+example: 0x0000000000000000000000000000000000000000
+symbol*	{
+description:	
+The token symbol used in the payment method currency
+
+}
+example: BTC
+icon*	{
+description:	
+The token icon used in the payment method currency
+
+}
+example: https://cdn.d3.app/assets/tokens/token_image_BTC.png
+price*	number
+example: 0.3983550997142373
+The token price used in the payment method
+
+}
+PaymentOptionsResponse{
+options*	[
+Array of payment options, each containing contract and token addresses
+
+PaymentOptionResponse{...}]
+}
+OrderPaymentOptionsRequest{
+contractAddress*	string
+example: 0x46A7bEA3dBb87522834c8b24FA14D051893deE8a
+The contract address of the payment method
+
+tokenAddress*	string
+example: 0x0000000000000000000000000000000000000000
+The token address used in the payment method
+
+buyerAddress*	string
+example: 0x65d90DBa570408f8D512c91556d8E405acd99EE2
+The address of the buyer
+
+}
+NameRequest{
+sld*	string
+example: example1
+Second-level domain (SLD) of the name to mint
+
+tld*	string
+example: shib
+Top-level domain (TLD) of the name to mint
+
+autoRenew	boolean
+example: false
+default: true
+Whether to auto-renew the domain after it expires
+
+domainLength	number
+example: 1
+default: 1
+The length of the domain registration in years
+
+Enum:
+[ 1, 2, 3, 5, 10 ]
+}
+PartnerOrderRequest{
+paymentOptions*	{
+description:	
+The payment options for the transaction
+
+contractAddress*	string
+example: 0x46A7bEA3dBb87522834c8b24FA14D051893deE8a
+The contract address of the payment method
+
+tokenAddress*	string
+example: 0x0000000000000000000000000000000000000000
+The token address used in the payment method
+
+buyerAddress*	string
+example: 0x65d90DBa570408f8D512c91556d8E405acd99EE2
+The address of the buyer
+
+}
+names*	[
+Array of names to mint, each including an SLD and TLD
+
+NameRequest{...}]
+}
+PartnerOrderResponse{
+voucher*	{
+description:	
+The voucher details including names, amount, and expiration
+
+oneOf ->	
+{...}
+{...}
+}
+signature*	string
+example: 0x57235cf3bc5d305cc1dc4b040ae3b1dd34ade899ecc97d33e2167346c05f217348f80012d8081bdfaeed3f02a81e12483fdf12afd6715f5c5c1f322c390defc61c
+The signature of the voucher for submission
+
+}
+DomainVerificationSubmitResponse{
+message*	string
+example: 10 of 12 Domain(s) submitted successfully
+Message indicating the number of domains submitted successfully
+
+skipped*	[
+example: List [ OrderedMap { "domain": "invalid", "reason": "Invalid domain format" }, OrderedMap { "domain": "!@#$%^&*()", "reason": "Domain name label can only contain alphanumeric characters or dashes." } ]
+List of domains that were skipped during the submission process, along with the reason
+
+[...]]
+}
+DomainVerificationStatusResponse{
+message*	string
+example: Ownership verified
+Message indicating the status of the domain verification
+
+status*	string
+example: VERIFIED
+Status of the domain verification
+
+Enum:
+Array [ 3 ]
+}

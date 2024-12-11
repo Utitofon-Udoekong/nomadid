@@ -1,0 +1,50 @@
+Sell Name Tokens to Users in your App
+Sell Name Tokens to Users in Your App
+With D3, you can offer your users the ability to search for and purchase name tokens directly within your app. Whether you’re looking for a low-code solution to quickly integrate domain sales or a fully customizable experience, D3 has the tools to make it happen.
+
+Overview
+D3 provides flexible integration options that allow you to sell domains to users seamlessly. Whether you want to quickly add domain purchasing with an embeddable widget or prefer a more custom solution using D3’s robust APIs, we’ve got you covered. Your users will be able to search, purchase and mind name tokens all within your app, creating a streamlined experience without needing to leave your platform.
+
+How to Build This
+You have two main options for integrating name token sales into your app, depending on the level of customization you need:
+
+1. D3 Embed (Low-Code)
+
+The easiest way to get started. With just a few lines of code, you can integrate D3’s embeddable widget that allows users to search and purchase domains.
+
+Quick Setup: Add a name search and purchase flow to your app without extensive development.
+
+Customizable Appearance: You can align the widget’s look and feel with your app’s branding.
+
+2. D3 API Integration (Med/High-Code)
+
+For those looking for deeper integration, D3’s Sales APIs offer a comprehensive suite of endpoints to fully control the user experience, from searching for domains to purchasing and managing them.
+
+Search for Names:
+
+Copy
+GET /v1/partner/search
+Purchase Names:
+
+Copy
+POST /v1/partner/purchase
+Mint Names: 
+
+Copy
+POST /v1/partner/mint
+Example Flow
+User Searches for a Name: The user enters a desired domain name into the search bar in your app, powered by D3’s embeddable widget or API.
+
+Add to cart: Once a name is selected, the user can add the name to their cart
+
+Name Purchase:  User can complete the purchase with fiat or crypto, depending on your integration.
+
+Benefits
+Increased Revenue: Offering domain purchasing within your app encourages users to stay on your platform longer and provides an additional revenue stream.
+
+Flexible Integration Options: Choose between a low-code embeddable widget for quick deployment or use the API for more custom control over the domain sales process.
+
+Seamless User Experience: Users can search for, purchase, and manage domains without leaving your app, providing a frictionless experience.
+
+Why Use D3?
+D3’s integration options make it simple to sell domains in your app, whether you’re looking for a quick solution with the embeddable widget or a fully customizable experience with the API. With flexible payment methods, an intuitive user experience, and comprehensive name management, D3 empowers you to deliver valuable services to your users while boosting engagement and revenue.

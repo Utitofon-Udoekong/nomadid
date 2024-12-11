@@ -1,0 +1,332 @@
+Resolve D3 Names
+Building With DNS Connect SDK
+Overview
+The DNS Connect SDK aims to bring different Web3 Name Resolution services under one umbrella to simplify integration efforts for developers. It supports the following resolution methods, which can be applied in order of priority:
+
+DNS Resolution
+
+(Optional) ENS resolution
+
+(Optional) Other resolution services - either provided by D3 or community.
+
+Drawing
+Why Use DNS Connect SDK
+DNS Connect SDK offers a host of benefits including:
+
+Seamless transition between existing web (Internet) and Web3 infrastructure
+
+Futureproof design with backward and forward compatibility at its foundation
+
+Single integration without the need for endless SDKs, APIs and more
+
+Accessible, compliant and secure infrastructure
+
+SDK Documentation and Sample Code
+DNS Connect is a unified JavaScript SDK to resolve Web3 names, built to be modular in nature and consisting of several resolution modules, which are applied in order of priority:
+
+DNS resolution module. Resolves Web3 names using DNS TXT records. This is a core module, which cannot be disabled and always applied first.
+
+ENS resolution module. Resolves Web3 names using ENS. Distributed as a separate @webinterop/dns-connect-ens package.
+
+Other modules...
+
+DNS Connect SDK can be used in both NodeJS and browser environments:
+
+Node 18+ (fetch api support is needed, this might be relaxed in future).
+
+Browsers with ES2022 features support (basically all modern browsers).
+
+@webinterop/dns-connect
+This package provides a modular SDK itself and a DNS resolution module. It is a lightweight zero-dependency library, which can be used to perform basic Web3 Wallet address resolution using standard DNS protocol.
+
+NPM
+Yarn
+Copy
+npm install @webinterop/dns-connect
+The SDK provides two methods for performing forward and reverse name resolution:
+
+Copy
+/**
+ * Resolves a name to an address.
+ * @param name - The name to resolve.
+ * @param network - The network to resolve the name on.
+ * @returns The resolved address.
+ */
+async resolve(name: string, network: string): Promise<string | undefined>
+
+/**
+ * Resolves an address to a name.
+ * @param address - The address to resolve.
+ * @param network - The network to resolve the address on.
+ * @returns The resolved name.
+ */
+async reverseResolve(address: string, network: string): Promise<string | undefined>
+A basic example is shown below:
+
+Copy
+import { DNSConnect } from '@webinterop/dns-connect';
+
+const dnsConnect = new DNSConnect();
+
+// Resolves `example.core` name on `CORE` blockchain
+const walletAddress = await dnsConnect.resolve('example.core', 'CORE');
+console.log(walletAddress);
+
+// Reverse resolves wallet address `0xaaaa` on `CORE` blockchain
+const domainName = await dnsConnect.reverseResolve('0xaaaa', 'CORE');
+console.log(domainName);
+Our SDK is highly configurable, and can be customized for a variety of use cases:
+
+Copy
+const dnsConnect = new DNSConnect({
+  // DNS resolution module options (with defaults):
+  dns: {
+    forwarderDomain: 'forwarder.d3.app',
+    // Whether or not DNSSEC verification must be performed by a resolver
+    dnssecVerification: true,
+    // DNS-over-HTTPS resolver is provided by default. It uses dns-json format, which is supported by CloudFlare & Google resolvers.
+    // This could be substituted with different implementations by SDK consumers.
+    resolver: new DNSOverHTTPSResolver({
+      dnsServer: 'https://cloudflare-dns.com/dns-query',
+    }),
+  },
+  // Log level for the SDK log messages
+  logLevel: 'info', // "trace" | "info" | "warn" | "error" | "silent"
+  // If needed, custom logger implementation can be provided.
+  // By default, standard console logger is used.
+  logger: <ConsoleLogger>,
+  // In-memory cache is used by default to cache resolution result (and intermediate resolution data)
+  // To avoid memory leaks (in server scenarios), or use persistent cache (in browser scenarios), custom caching implementation can be provided.
+  caching: {
+    enabled: true,
+    cacheProvider: <InMemoryCache>,
+  },
+});
+Below is the list of supported Blockchain networks (passed as the second parameter to the resolve and reverseResolve methods):
+
+Blockchain	Network parameter
+Ethereum
+
+ETH
+
+Bitcoin
+
+BTC
+
+Shibarium
+
+BONE
+
+Core
+
+CORE
+
+Viction
+
+VIC
+
+Polygon
+
+MATIC
+
+Cardano
+
+ADA
+
+ApeChain
+
+APE
+
+Current version limitations:
+
+IDNA (Unicode) names resolution is not supported, names should be normalized and converted to Punycode before passing to SDK.
+
+Retries are not implemented for DNS queries.
+
+Need to provide a common interface to pass cross-cutting services (caching, logging) to the modules.
+
+logLevel is not respected for external logger. Need to use an internal logging abstraction.
+
+network argument is not properly validated. SLIP44 validation can be added.
+
+@webinterop/dns-connect-ens
+This is an optional module which adds support for ENS names resolution.
+
+NPM
+Yarn
+Copy
+npm install @webinterop/dns-connect-ens
+Basic usage:
+
+Copy
+import { DNSConnect } from '@webinterop/dns-connect';
+import { ENSModule } from '@webinterop/dns-connect-ens';
+
+const dnsConnect = new DNSConnect({ modules: [new ENSModule()] });
+const walletAddress = await d3Connect.resolve('test.eth', 'ETH');
+console.log(walletAddress);
+Under the hood, it uses the @ensdomains/ensjs package, which in turn uses viem for blockchain integration. Viem chain and transport can be provided to further customize this module:
+
+Copy
+import { DNSConnect } from '@webinterop/dns-connect';
+import { ENSModule } from '@webinterop/dns-connect-ens';
+import { http } from 'viem';
+import { mainnet } from 'viem/chains';
+
+const dnsConnect = new DNSConnect({
+  modules: [
+    new ENSModule({
+      // Be default, `viem` Ethereum Mainnet network is used.
+      // Custom network can be provided for testnet or private deployments.
+      chain: mainnet,
+      // By default, HTTP transport used
+      transport: http(),
+    }),
+  ],
+});
+Current version limitations:
+
+ENS TTL is currently not used, so resolution results are not cached. Internal @ensdomains/ensjs is used instead.
+
+Provided network is not validated for support by @ensdomains/ensjs.
+
+Custom resolution modules
+Custom resolution modules can be written by implementing the DNSConnectModule interface:
+
+Copy
+export interface CustomModuleOptions {
+  // Module options here
+}
+
+export class CustomModule implements DNSConnectModule {
+  // Name is used for logging purposes
+  name = 'MyModuleName';
+
+  constructor(options?: CustomModuleOptions) {
+    // Initialize your module
+  }
+
+  async resolve(name: string, network: string): Promise<ResolutionResult | undefined> {
+    // Perform resolution of the provided name using custom logic.
+    // If name cannot be resolved by this module, return `undefined`.
+
+    return {
+      // Return resolved wallet address (MUST not be empty)
+      address: resolvedAddress,
+      // Return TTL for resolved address (in seconds)
+      // 0 can be returned to disable caching for this name
+      ttl: 30,
+    };
+  }
+  
+  async reverseResolve(address: string, network: string): Promise<ReverseResolutionResult | undefined> {
+   // Perform reverse resolution of the provided address using custom logic.
+   // If address cannot be reverse resolved by this module, return `undefined`.
+
+   return {
+     // Return reverse resolved name (MUST not be empty)
+     name: resolvedName,
+     // Return TTL for resolved address (in seconds)
+     // 0 can be returned to disable caching for this name
+     ttl: 30,
+   };
+
+}
+To use it, pass it as a module in DNSConnect options:
+
+Copy
+import { DNSConnect } from '@webinterop/dns-connect';
+
+const dnsConnect = new DNSConnect({ modules: [new CustomModule()] });
+const walletAddress = await dnsConnect.resolve('test.custom', 'ETH');
+console.log(walletAddress);
+Integrate using Resolver Smart Contract (CCIP Read)
+DNS Connect provides CCIP Read-compatible Resolver smart contracts to support secure name resolution using standard web3 libraries. CCIP Read will perform an offchain lookup through a Gateway which implements DNS Connect SDK to resolve the name or address.
+
+The following methods are available in the Resolver smart contracts to handle forward and reverse name resolution.
+
+Copy
+/**
+ * @notice Resolve a name to an address using CCIP Read
+ * @param name Name to resolve.
+ * @param network (Optional) Network (blockchain) to resolve the name for. If not provided, defaults to current network.
+ * @return resolvedAddress Resolved address.  
+ */
+function resolve(
+        string name,
+        string network
+) external view returns (address);
+
+/**
+ * @notice Reverse resolve an address to a name using CCIP Read
+ * @param addr Address to resolve.
+ * @param network (Optional) Network (blockchain) to use. If not provided, defaults to current network.
+ * @return name Resolved name.
+ */
+function reverseResolve(
+  address addr,
+  string network
+) external view returns (string)
+Any client that support CCIP Read can be used to interact with these smart contract methods. For example:
+
+Blockchain explorers
+
+Web3 libraries
+
+ethers.js
+
+web3.js
+
+Example resolving a name using ethers.js:
+
+Copy
+// RPC url of a network
+const rpcURL = 'https://rpc.example.com';
+// D3 Resolver address on a given network (from docs)
+const resolverAddress = '0x0123...';
+const abi = [
+  'function resolve(string name, string network) public view returns (address)',
+  'function reverseResolve(address addr, string network) public view returns (string)',
+];
+const provider = new JsonRpcProvider(rpcURL);
+const resolverContract = new ethers.Contract(resolverAddress, abi, provider);
+
+// Resolve a name to address
+const address = await resolverContract.resolve(
+  'example.shib',
+  // If empty, name will be resolved for current blockchain
+  '', 
+  // Important to explicitly enable CCIP Read
+  { enableCcipRead: true }
+);
+console.log(`Resolved address: ${address}`);
+
+// Reverse resolve an address to name
+const name = await resolverContract.reverseResolve(
+  '0x03456...',
+  '',
+  {
+    enableCcipRead: true,
+  },
+);
+console.log(`Resolved name: ${name}`);
+Below is the list of Resolver contract addresses on Mainnet and Testnet
+
+Blockchain	Mainnet Address	Testnet Address
+Shibarium
+
+0xD60D40674E678F0089736D6381071973a75B4B6f
+
+0x91c2d22ca1028B2E55e3097096494Eb34b7fc81c
+
+Core
+
+0xe242864ADA335285fAe70Fd752d03AAA1421dC75
+
+0x87621Bb14fe30f7F91CAC744eEab8505927A2e9f
+
+ApeChain
+
+0xeA54b0E40E956383C95e28cb407FF35235Aa31fE
+
+0xE3E3478f62C4B3293BadE301400a903a2d879Da3
