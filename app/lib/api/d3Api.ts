@@ -9,6 +9,7 @@ const d3Api = axios.create({
   },
 });
 
+// Types
 export interface MintNameTokenRequest {
   sld: string;
   tld: string;
@@ -18,8 +19,48 @@ export interface MintNameTokenRequest {
   };
 }
 
+export interface TokenMetadata {
+  id: string;
+  name: string;
+  owner: string;
+  chainId: number;
+  contractAddress: string;
+  tokenId: string;
+  status: string;
+  expiresAt: string;
+}
+
+export interface SearchParams {
+  query?: string;
+  tld?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface TokenSearchResult {
+  name: string;
+  available: boolean;
+  price?: string;
+  currency?: string;
+}
+
 export interface DomainVerificationRequest {
   domain: string;
+  proofType: 'DNS' | 'FILE';
+}
+
+export interface PaymentOption {
+  method: string;
+  currency: string;
+  minAmount: string;
+  maxAmount: string;
+}
+
+export interface OrderRequest {
+  sld: string;
+  tld: string;
+  paymentMethod: string;
+  currency: string;
 }
 
 export const d3ApiService = {
@@ -29,7 +70,33 @@ export const d3ApiService = {
   },
 
   getTokenMetadata: async (sld: string, tld: string) => {
-    return d3Api.get(`/partner/token/${sld}/${tld}`);
+    return d3Api.get<TokenMetadata>(`/partner/token/${sld}/${tld}`);
+  },
+
+  getTokenMetadataById: async (chainId: string, contractAddress: string, tokenId: string) => {
+    return d3Api.get<TokenMetadata>(`/partner/token/${chainId}/${contractAddress}/${tokenId}`);
+  },
+
+  getTokensByAddress: async (addressType: 'wallet' | 'domain', address: string) => {
+    return d3Api.get<TokenMetadata[]>(`/partner/tokens/${addressType}/${address}`);
+  },
+
+  // Search and Recommendations
+  searchTokens: async (params: SearchParams) => {
+    return d3Api.get<TokenSearchResult[]>('/partner/search', { params });
+  },
+
+  getRecommendations: async (params: SearchParams) => {
+    return d3Api.get<string[]>('/partner/recommendations', { params });
+  },
+
+  // Payment and Orders
+  getPaymentOptions: async () => {
+    return d3Api.get<PaymentOption[]>('/partner/payment/options');
+  },
+
+  createOrder: async (data: OrderRequest) => {
+    return d3Api.post('/partner/order', data);
   },
 
   // Domain Verification
@@ -37,16 +104,23 @@ export const d3ApiService = {
     return d3Api.post('/domain-verification/submit-domain', data);
   },
 
-  checkDomainVerification: async (domain: string) => {
-    return d3Api.get(`/domain-verification/status/${domain}`);
+  getDomainVerificationStatus: async (domain: string) => {
+    return d3Api.get('/domain-verification/status', {
+      params: { domain },
+    });
   },
 
-  // Token Sales
-  getTokenPrice: async (sld: string, tld: string) => {
-    return d3Api.get(`/partner/price/${sld}/${tld}`);
+  // Batch Operations
+  getTokenMetadataBatch: async (
+    chainId: string,
+    contractAddress: string,
+    tokenIds: string[]
+  ) => {
+    return d3Api.post<TokenMetadata[]>(
+      `/partner/tokens/${chainId}/${contractAddress}`,
+      { tokenIds }
+    );
   },
-
-  // Add more API endpoints as needed
 };
 
 export default d3ApiService; 

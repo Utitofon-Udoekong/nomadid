@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNameToken } from '../../lib/hooks/useNameToken';
+import { TokenSearchResult, PaymentOption } from '../../lib/api/d3Api';
 
 const registerSchema = z.object({
   sld: z.string()
@@ -10,13 +11,16 @@ const registerSchema = z.object({
     .max(63, 'Name must be less than 63 characters')
     .regex(/^[a-zA-Z0-9-]+$/, 'Only letters, numbers, and hyphens are allowed'),
   tld: z.string(),
+  paymentMethod: z.string().optional(),
+  currency: z.string().optional(),
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function RegisterName() {
-  const { mintToken, getTokenPrice, loading, error } = useNameToken();
-  const [price, setPrice] = useState<string | null>(null);
+  const { mintToken, searchNames, createOrder, getPaymentOptions, loading, error } = useNameToken();
+  const [searchResult, setSearchResult] = useState<TokenSearchResult | null>(null);
+  const [paymentOptions, setPaymentOptions] = useState<PaymentOption[]>([]);
 
   const {
     register,
@@ -33,16 +37,46 @@ export default function RegisterName() {
   const watchSld = watch('sld');
   const watchTld = watch('tld');
 
-  const checkPrice = async () => {
-    if (watchSld && watchTld) {
-      const priceData = await getTokenPrice(watchSld, watchTld);
-      if (priceData) {
-        setPrice(priceData.price);
+  useEffect(() => {
+    const loadPaymentOptions = async () => {
+      const options = await getPaymentOptions();
+      if (options) {
+        setPaymentOptions(options);
       }
-    }
-  };
+    };
+    loadPaymentOptions();
+  }, [getPaymentOptions]);
+
+  useEffect(() => {
+    const checkAvailability = async () => {
+      if (watchSld && watchTld) {
+        const results = await searchNames({
+          query: watchSld,
+          tld: watchTld,
+          limit: 1,
+        });
+        if (results && results.length > 0) {
+          setSearchResult(results[0]);
+        }
+      }
+    };
+
+    const debounce = setTimeout(checkAvailability, 2000);
+    return () => clearTimeout(debounce);
+  }, [watchSld, watchTld, searchNames]);
 
   const onSubmit = async (data: RegisterFormData) => {
+    if (!searchResult?.available) {
+      return;
+    }
+
+    if (data.paymentMethod && data.currency) {
+      // Create order first
+      const order = await createOrder(data.sld, data.tld, data.paymentMethod, data.currency);
+      if (!order) return;
+    }
+
+    // Mint the token
     const result = await mintToken(data.sld, data.tld);
     if (result) {
       // Handle success
@@ -90,9 +124,35 @@ export default function RegisterName() {
           </select>
         </div>
 
-        {price && (
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Price: {price} CORE
+        {searchResult && (
+          <div className="text-sm">
+            {searchResult.available ? (
+              <div className="text-green-600 dark:text-green-400">
+                Available - Price: {searchResult.price} {searchResult.currency}
+              </div>
+            ) : (
+              <div className="text-red-600 dark:text-red-400">
+                Name is not available
+              </div>
+            )}
+          </div>
+        )}
+
+        {searchResult?.available && paymentOptions.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Payment Method
+            </label>
+            <select
+              {...register('paymentMethod')}
+              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-md"
+            >
+              {paymentOptions.map((option) => (
+                <option key={option.method} value={option.method}>
+                  {option.method} ({option.currency})
+                </option>
+              ))}
+            </select>
           </div>
         )}
 
@@ -100,21 +160,13 @@ export default function RegisterName() {
           <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
         )}
 
-        <div className="flex space-x-4">
-          <button
-            type="button"
-            onClick={checkPrice}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            Check Price
-          </button>
-
+        <div>
           <button
             type="submit"
-            disabled={loading}
-            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            disabled={loading || !searchResult?.available}
+            className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
           >
-            {loading ? 'Registering...' : 'Register Name'}
+            {loading ? 'Processing...' : 'Register Name'}
           </button>
         </div>
       </form>
