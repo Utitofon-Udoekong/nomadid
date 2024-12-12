@@ -1,0 +1,87 @@
+Integrate using Resolver Smart Contract (CCIP Read)
+DNS Connect provides CCIP Read-compatible Resolver smart contracts to support secure name resolution using standard web3 libraries. CCIP Read will perform an offchain lookup through a Gateway which implements DNS Connect SDK to resolve the name or address.
+
+The following methods are available in the Resolver smart contracts to handle forward and reverse name resolution.
+
+Copy
+/**
+ * @notice Resolve a name to an address using CCIP Read
+ * @param name Name to resolve.
+ * @param network (Optional) Network (blockchain) to resolve the name for. If not provided, defaults to current network.
+ * @return resolvedAddress Resolved address.  
+ */
+function resolve(
+        string name,
+        string network
+) external view returns (address);
+
+/**
+ * @notice Reverse resolve an address to a name using CCIP Read
+ * @param addr Address to resolve.
+ * @param network (Optional) Network (blockchain) to use. If not provided, defaults to current network.
+ * @return name Resolved name.
+ */
+function reverseResolve(
+  address addr,
+  string network
+) external view returns (string)
+Any client that support CCIP Read can be used to interact with these smart contract methods. For example:
+
+Blockchain explorers
+
+Web3 libraries
+
+ethers.js
+
+web3.js
+
+Example resolving a name using ethers.js:
+
+Copy
+// RPC url of a network
+const rpcURL = 'https://rpc.example.com';
+// D3 Resolver address on a given network (from docs)
+const resolverAddress = '0x0123...';
+const abi = [
+  'function resolve(string name, string network) public view returns (address)',
+  'function reverseResolve(address addr, string network) public view returns (string)',
+];
+const provider = new JsonRpcProvider(rpcURL);
+const resolverContract = new ethers.Contract(resolverAddress, abi, provider);
+
+// Resolve a name to address
+const address = await resolverContract.resolve(
+  'example.shib',
+  // If empty, name will be resolved for current blockchain
+  '', 
+  // Important to explicitly enable CCIP Read
+  { enableCcipRead: true }
+);
+console.log(`Resolved address: ${address}`);
+
+// Reverse resolve an address to name
+const name = await resolverContract.reverseResolve(
+  '0x03456...',
+  '',
+  {
+    enableCcipRead: true,
+  },
+);
+console.log(`Resolved name: ${name}`);
+Below is the list of Resolver contract addresses on Mainnet and Testnet
+
+Blockchain
+
+Shibarium Mainnet Address 0xD60D40674E678F0089736D6381071973a75B4B6f
+
+Shibarium Testnet Address 0x91c2d22ca1028B2E55e3097096494Eb34b7fc81c
+
+
+Core Mainnet Address 0xe242864ADA335285fAe70Fd752d03AAA1421dC75
+
+Core Testnet Address 0x87621Bb14fe30f7F91CAC744eEab8505927A2e9f
+
+
+ApeChain Mainnet Address 0xeA54b0E40E956383C95e28cb407FF35235Aa31fE
+
+ApeChain Testnet Address 0xE3E3478f62C4B3293BadE301400a903a2d879Da3
