@@ -49,7 +49,7 @@ export default function AddressFinder() {
   const [currentBatch, setCurrentBatch] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   
-  const { register, handleSubmit, formState: { errors } } = useForm<ReverseResolveFormData>({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<ReverseResolveFormData>({
     resolver: zodResolver(reverseResolveSchema),
     defaultValues: {
       addresses: '',
@@ -156,7 +156,7 @@ export default function AddressFinder() {
         {loading && currentBatch > 0 && (
           <BatchProgress
             current={currentBatch}
-            total={results.length || 1}
+            total={watch('addresses').split(',').length || 0}
             label="Processing addresses"
           />
         )}
