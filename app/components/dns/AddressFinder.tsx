@@ -3,6 +3,9 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useDnsResolver } from '../../lib/hooks/useDnsResolver';
+import BatchProgress from '../common/BatchProgress';
+import SuccessAnimation from '../common/SuccessAnimation';
+import Tooltip from '../common/Tooltip';
 
 const reverseResolveSchema = z.object({
   addresses: z.string()
@@ -43,6 +46,8 @@ const SUPPORTED_NETWORKS = [
 export default function AddressFinder() {
   const { resolveAddressToName, loading, error: resolverError } = useDnsResolver();
   const [results, setResults] = useState<ResolutionResult[]>([]);
+  const [currentBatch, setCurrentBatch] = useState(0);
+  const [showSuccess, setShowSuccess] = useState(false);
   
   const { register, handleSubmit, formState: { errors } } = useForm<ReverseResolveFormData>({
     resolver: zodResolver(reverseResolveSchema),
@@ -55,32 +60,36 @@ export default function AddressFinder() {
   const onSubmit = async (data: ReverseResolveFormData) => {
     console.log('📝 Address finder form submitted:', data);
     setResults([]);
+    setShowSuccess(false);
     
     const addresses = data.addresses.split(',').map(addr => addr.trim());
     console.log('🔍 Processing addresses:', addresses);
     
-    const resolutionResults = await Promise.all(
-      addresses.map(async (address) => {
-        try {
-          const name = await resolveAddressToName(address, data.network);
-          console.log('🔍 Address resolution result:', { address, name });
-          return {
-            address,
-            name,
-            ...(name ? {} : { error: 'Resolution failed' })
-          };
-        } catch (err) {
-          console.error('❌ Resolution error for address:', address, err);
-          return {
-            address,
-            name: null,
-            error: err instanceof Error ? err.message : 'Resolution failed'
-          };
-        }
-      })
-    );
+    const resolutionResults = [];
+    for (let i = 0; i < addresses.length; i++) {
+      setCurrentBatch(i + 1);
+      const address = addresses[i];
+      try {
+        const name = await resolveAddressToName(address, data.network);
+        console.log('🔍 Address resolution result:', { address, name });
+        resolutionResults.push({
+          address,
+          name,
+          ...(name ? {} : { error: 'Resolution failed' })
+        });
+      } catch (err) {
+        console.error('❌ Resolution error for address:', address, err);
+        resolutionResults.push({
+          address,
+          name: null,
+          error: err instanceof Error ? err.message : 'Resolution failed'
+        });
+      }
+    }
 
     setResults(resolutionResults);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
   };
 
   return (
@@ -95,7 +104,9 @@ export default function AddressFinder() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Wallet Addresses
+            <Tooltip content="Enter up to 10 Ethereum addresses, separated by commas">
+              <span>Wallet Addresses</span>
+            </Tooltip>
           </label>
           <div className="mt-1">
             <input
@@ -115,7 +126,9 @@ export default function AddressFinder() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Network
+            <Tooltip content="Select the blockchain network for resolution">
+              <span>Network</span>
+            </Tooltip>
           </label>
           <select
             {...register('network')}
@@ -140,9 +153,23 @@ export default function AddressFinder() {
           {loading ? 'Finding...' : 'Find DNS Names'}
         </button>
 
-        {resolverError && (
+        {loading && currentBatch > 0 && (
+          <BatchProgress
+            current={currentBatch}
+            total={results.length || 1}
+            label="Processing addresses"
+          />
+        )}
+
+        {showSuccess && results.some(r => !r.error) && (
+          <SuccessAnimation message="Addresses resolved successfully" />
+        )}
+
+        {(resolverError || Object.keys(errors).length > 0) && (
           <div className="text-sm text-red-600 dark:text-red-400 space-y-1">
-            <p>{resolverError}</p>
+            {resolverError && <p>{resolverError}</p>}
+            {errors.addresses && <p>{errors.addresses.message}</p>}
+            {errors.network && <p>{errors.network.message}</p>}
           </div>
         )}
 

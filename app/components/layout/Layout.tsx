@@ -1,16 +1,29 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { useStore } from '../../lib/store/useStore';
 import WalletButton from '../wallet/WalletButton';
 import Tabs from '../common/Tabs';
 import RegisterName from '../dns/RegisterName';
 import NameLookup from '../dns/NameLookup';
 import AddressFinder from '../dns/AddressFinder';
+import UserGuide from '../guide/UserGuide';
+import Tooltip from '../common/Tooltip';
 
 const tabs = [
-  { id: 'register', label: 'Register Name' },
-  { id: 'lookup', label: 'Name Lookup' },
-  { id: 'finder', label: 'Address Finder' },
-  { id: 'transfer', label: 'Send/Receive' },
+  { 
+    id: 'register', 
+    label: 'Register Name',
+    tooltip: 'Register your unique DNS names that work across multiple blockchains'
+  },
+  { 
+    id: 'lookup', 
+    label: 'Name Lookup',
+    tooltip: 'Look up wallet addresses using DNS names'
+  },
+  { 
+    id: 'finder', 
+    label: 'Address Finder',
+    tooltip: 'Find DNS names associated with wallet addresses'
+  },
 ];
 
 interface LayoutProps {
@@ -20,6 +33,16 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const { user } = useStore();
   const [activeTab, setActiveTab] = useState('register');
+  const [showGuide, setShowGuide] = useState(false);
+
+  // Show guide for first-time visitors
+  useEffect(() => {
+    const hasSeenGuide = localStorage.getItem('hasSeenGuide');
+    if (!hasSeenGuide) {
+      setShowGuide(true);
+      localStorage.setItem('hasSeenGuide', 'true');
+    }
+  }, []);
 
   const renderActiveTab = () => {
     switch (activeTab) {
@@ -29,8 +52,6 @@ export default function Layout({ children }: LayoutProps) {
         return <NameLookup />;
       case 'finder':
         return <AddressFinder />;
-      case 'transfer':
-        return <div>Transfer feature coming soon...</div>;
       default:
         return null;
     }
@@ -62,24 +83,27 @@ export default function Layout({ children }: LayoutProps) {
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="space-y-6">
-          <Tabs
-            tabs={tabs}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
+          <div className="flex items-center space-x-4">
+            <Tabs
+              tabs={tabs.map(tab => ({
+                ...tab,
+                content: (
+                  <Tooltip content={tab.tooltip}>
+                    <span>{tab.label}</span>
+                  </Tooltip>
+                )
+              }))}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+          </div>
           <div className="mt-6">
             {renderActiveTab()}
           </div>
         </div>
       </main>
 
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-            © 2023 NomadID. All rights reserved.
-          </p>
-        </div>
-      </footer>
+      {showGuide && <UserGuide onDismiss={() => setShowGuide(false)} />}
     </div>
   );
 } 
