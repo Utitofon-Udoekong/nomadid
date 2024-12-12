@@ -10,7 +10,7 @@ import {
 
 export const config = getDefaultConfig({
   appName: 'NomadID',
-  projectId: '00eeef778447415dff4bfa73a5a055b2',
+  projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID as string,
   chains: [
     mainnet,
     polygon,

@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import d3ApiService, { 
   MintNameTokenRequest, 
-  TokenMetadata,
-  SearchParams,
-  TokenSearchResult,
-  OrderRequest
+  SearchResultItem,
 } from '../api/d3Api';
 import { useStore } from '../store/useStore';
 
@@ -13,14 +10,18 @@ export const useNameToken = () => {
   const [error, setError] = useState<string | null>(null);
   const { user, addDnsName } = useStore();
 
-  const searchNames = async (params: SearchParams) => {
+  const checkPrice = async (sld: string, tld: string) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await d3ApiService.searchTokens(params);
-      return response.data;
+      const response = await d3ApiService.searchTokens({
+        sld,
+        tld,
+        limit: 1,
+      });
+      return response.pageItems[0];
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to search names');
+      setError(err instanceof Error ? err.message : 'Failed to check price');
       return null;
     } finally {
       setLoading(false);
@@ -50,7 +51,7 @@ export const useNameToken = () => {
       const dnsName = `${sld}.${tld}`;
       addDnsName(dnsName);
       
-      return response.data;
+      return response;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to mint token');
       return null;
@@ -59,67 +60,14 @@ export const useNameToken = () => {
     }
   };
 
-  const getTokenMetadata = async (sld: string, tld: string) => {
+  const getRecommendations = async (sld: string, tld?: string) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await d3ApiService.getTokenMetadata(sld, tld);
-      return response.data;
+      const response = await d3ApiService.getRecommendations(sld, tld);
+      return response;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to get token metadata');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getUserTokens = async () => {
-    if (!user) {
-      setError('User not connected');
-      return null;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await d3ApiService.getTokensByAddress('wallet', user.wallet);
-      return response.data;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to get user tokens');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createOrder = async (sld: string, tld: string, paymentMethod: string, currency: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const orderRequest: OrderRequest = {
-        sld,
-        tld,
-        paymentMethod,
-        currency,
-      };
-      const response = await d3ApiService.createOrder(orderRequest);
-      return response.data;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create order');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getPaymentOptions = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await d3ApiService.getPaymentOptions();
-      return response.data;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to get payment options');
+      setError(err instanceof Error ? err.message : 'Failed to get recommendations');
       return null;
     } finally {
       setLoading(false);
@@ -127,12 +75,9 @@ export const useNameToken = () => {
   };
 
   return {
+    checkPrice,
     mintToken,
-    getTokenMetadata,
-    searchNames,
-    getUserTokens,
-    createOrder,
-    getPaymentOptions,
+    getRecommendations,
     loading,
     error,
   };
