@@ -46,7 +46,7 @@ export default function NameLookup() {
   const [currentBatch, setCurrentBatch] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   
-  const { register, handleSubmit, formState: { errors } } = useForm<ResolveFormData>({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<ResolveFormData>({
     resolver: zodResolver(resolveSchema),
     defaultValues: {
       names: '',
@@ -156,7 +156,7 @@ export default function NameLookup() {
         {loading && currentBatch > 0 && (
           <BatchProgress
             current={currentBatch}
-            total={results.length || 1}
+            total={watch('names').split(',').length || 0}
             label="Processing names"
           />
         )}
